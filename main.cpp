@@ -12,6 +12,7 @@
 
 
 using namespace std;
+using byte = unsigned char;
 
 static const int MIN = 0;
 static const int MAX = 10;
@@ -26,7 +27,7 @@ double * newImpurityAggregator() {
 }
 
 // calculate Entropy impurity
-double calculateImpurity(const double * const aggregator) {
+double calculateEntropyImpurity(const double * const aggregator) {
     double sum = 0.0;
     for (int i = 0; i < NUM_CLASSES; ++i) {
       sum += aggregator[i];
@@ -43,6 +44,26 @@ double calculateImpurity(const double * const aggregator) {
     }
     return impurity;
 }
+
+// calculate Gini impurity
+double calculateGiniImpurity(const double * const aggregator) {
+    double sum = 0.0;
+    for (int i = 0; i < NUM_CLASSES; ++i) {
+      sum += aggregator[i];
+    }
+
+    int numClasses = NUM_CLASSES;
+    double impurity = 1.0;
+    for (int classIndex = 0; classIndex < numClasses; ++classIndex) {
+      double classCount = aggregator[classIndex];
+      if (classCount != 0) {
+        double freq = classCount / sum;
+        impurity -= freq * freq;
+      }
+    }
+    return impurity;
+}
+
 
 // subtract second from first
 void subtractAggregator(double * const first, const double * const second) {
@@ -77,7 +98,7 @@ int main(int argc, const char * argv[]) {
   // 1) allocate array of random values (and corresponding indices) and random labels
   double * const values = new double[NUM_ROWS];
   int * const indices = new int[NUM_ROWS];
-  double * const labels = new double[NUM_ROWS];
+  byte * const labels = new byte[NUM_ROWS];
 
   for (int i = 0; i < NUM_ROWS; ++i) {
     labels[i] = rand() % MAX + MIN;
@@ -108,7 +129,7 @@ int main(int argc, const char * argv[]) {
   double bestThreshold = -numeric_limits<double>::max();
   double * bestLeftImpurityAggregator = newImpurityAggregator();
   double bestGain = 0.0;
-  double fullImpurity = calculateImpurity(rightImpurityAggregator);
+  double fullImpurity = calculateGiniImpurity(rightImpurityAggregator);
 
   int leftCount = 0;
   int rightCount = NUM_ROWS;
@@ -123,8 +144,8 @@ int main(int argc, const char * argv[]) {
         // Check gain
         double leftWeight = (double) leftCount / fullCount;
         double rightWeight = (double) rightCount / fullCount;
-        double leftImpurity = calculateImpurity(leftImpurityAggregator);
-        double rightImpurity = calculateImpurity(rightImpurityAggregator);
+        double leftImpurity = calculateGiniImpurity(leftImpurityAggregator);
+        double rightImpurity = calculateGiniImpurity(rightImpurityAggregator);
         double gain = fullImpurity - leftWeight * leftImpurity - rightWeight * rightImpurity;
         if (leftCount != 0 && rightCount != 0 && gain > bestGain) {
           bestThreshold = currentThreshold;
